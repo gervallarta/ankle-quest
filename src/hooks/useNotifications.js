@@ -36,11 +36,33 @@ export function useNotifications(morning, afternoon) {
   useEffect(() => { morningRef.current = morning; }, [morning]);
   useEffect(() => { afternoonRef.current = afternoon; }, [afternoon]);
 
-  // Registrar SW al montar
+  // Registrar SW al montar + auto-suscribir si el permiso ya estaba otorgado
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => { swRegRef.current = reg; })
+      .then(async reg => {
+        swRegRef.current = reg;
+        // Si el permiso ya está concedido, re-enviar suscripción al servidor
+        // (cubre el caso donde se otorgó antes de que existiera el servidor Push)
+        if (VAPID_PUBLIC_KEY && Notification.permission === 'granted') {
+          try {
+            // Forzar nueva suscripción: desuscribir la anterior si existe
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) await existing.unsubscribe();
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+            await fetch('/api/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sub),
+            });
+          } catch (e) {
+            console.warn('Auto-subscribe error:', e);
+          }
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -77,14 +99,6 @@ export function useNotifications(morning, afternoon) {
 
     const timers = [];
     const reg = swRegRef.current;
-
-    // 🔔 TEST — 2:25 pm (eliminar después de verificar)
-    const msToTest = msUntilTime(14, 25);
-    if (msToTest > 0) {
-      timers.push(setTimeout(() => {
-        showLocal(reg, 'Ankle Quest — Prueba ✨', '¡Las notificaciones funcionan cuando la app está abierta! 🎉', 'test-reminder');
-      }, msToTest));
-    }
 
     // 12:00 pm
     const msToNoon = msUntilTime(12, 0);
