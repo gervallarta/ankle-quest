@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(cp -r \"/Users/gervallarta/ClaudeCode/ankle-quest/.\" \"/Users/gervallarta/ClaudeCode/Ankle Quest/\")",
+      "Bash(rm -rf \"/Users/gervallarta/ClaudeCode/ankle-quest\")",
+      "Bash(npm install:*)",
+      "Bash(sudo rm:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
