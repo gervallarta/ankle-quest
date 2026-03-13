@@ -54,7 +54,7 @@ export function Header({ streak }) {
         textShadow: `0 2px 12px rgba(201,168,76,0.5)`,
         lineHeight: 1.2,
       }}>
-        Ankle Quest
+        Ema's Ankle Quest
       </div>
 
       <div style={{
