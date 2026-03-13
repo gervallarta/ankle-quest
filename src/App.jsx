@@ -84,6 +84,14 @@ export default function App() {
             streak={streak}
             history={history}
             onStart={handleStartSession}
+            onViewHistory={() => setView('history')}
+          />
+        )}
+
+        {view === 'history' && (
+          <HistoryView
+            history={history}
+            onBack={() => setView('home')}
           />
         )}
 
@@ -116,7 +124,9 @@ export default function App() {
   );
 }
 
-function HomeView({ morning, afternoon, bothDone, streak, history, onStart }) {
+// ─── Home ─────────────────────────────────────────────────────────────────────
+
+function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onViewHistory }) {
   const today = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
@@ -130,6 +140,10 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart }) {
       : afternoon.completed
         ? 'Tarde lista — ¿y la mañana?'
         : 'Tu misión de hoy te espera';
+
+  const hasHistory = Object.values(history || {}).some(day =>
+    normalizeSession(day.morning) || normalizeSession(day.afternoon)
+  );
 
   return (
     <div style={{ animation: 'slideUp 0.4s ease forwards' }}>
@@ -187,8 +201,229 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart }) {
       {/* Info section */}
       <InfoSection />
 
-      {/* History section */}
-      <HistorySection history={history} />
+      {/* Ver historial — subtle link-style button, only when data exists */}
+      {hasHistory && (
+        <button
+          onClick={onViewHistory}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '11px',
+            borderRadius: theme.radii.md,
+            background: 'transparent',
+            border: `1px solid ${theme.colors.borderLight}`,
+            color: theme.colors.textMuted,
+            fontFamily: theme.fonts.body,
+            fontWeight: 700,
+            fontSize: '0.78rem',
+            letterSpacing: '0.3px',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseDown={e => e.currentTarget.style.opacity = '0.55'}
+          onMouseUp={e => e.currentTarget.style.opacity = '1'}
+          onTouchStart={e => e.currentTarget.style.opacity = '0.55'}
+          onTouchEnd={e => e.currentTarget.style.opacity = '1'}
+        >
+          Ver historial →
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── History view ─────────────────────────────────────────────────────────────
+
+function HistoryView({ history, onBack }) {
+  // Build exercise totals by counting IDs across all sessions
+  const counts = {};
+  Object.values(history || {}).forEach(day => {
+    [normalizeSession(day.morning), normalizeSession(day.afternoon)].forEach(session => {
+      if (!session) return;
+      (session.exercises || []).forEach(id => {
+        counts[id] = (counts[id] || 0) + 1;
+      });
+    });
+  });
+
+  const totals = EXERCISES
+    .filter(ex => counts[ex.id] > 0)
+    .map(ex => ({ ...ex, count: counts[ex.id] }))
+    .sort((a, b) => b.count - a.count);
+
+  const maxCount = totals.length > 0 ? totals[0].count : 1;
+
+  // Build per-day entries
+  const entries = Object.entries(history || {})
+    .map(([date, day]) => ({
+      date,
+      morning: normalizeSession(day.morning),
+      afternoon: normalizeSession(day.afternoon),
+    }))
+    .filter(e => e.morning || e.afternoon)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const totalSessions = entries.reduce(
+    (acc, e) => acc + (e.morning ? 1 : 0) + (e.afternoon ? 1 : 0), 0
+  );
+
+  return (
+    <div style={{ animation: 'slideUp 0.4s ease forwards' }}>
+      {/* Back + title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '22px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '8px 14px',
+            borderRadius: theme.radii.full,
+            background: theme.colors.bgDeep,
+            color: theme.colors.textMuted,
+            fontFamily: theme.fonts.body,
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            flexShrink: 0,
+          }}
+          onMouseDown={e => e.currentTarget.style.opacity = '0.7'}
+          onMouseUp={e => e.currentTarget.style.opacity = '1'}
+          onTouchStart={e => e.currentTarget.style.opacity = '0.7'}
+          onTouchEnd={e => e.currentTarget.style.opacity = '1'}
+        >
+          ← Volver
+        </button>
+        <div>
+          <div style={{
+            fontFamily: theme.fonts.title,
+            fontSize: '1.05rem',
+            color: theme.colors.text,
+            letterSpacing: '0.3px',
+            lineHeight: 1.2,
+          }}>
+            Historial
+          </div>
+          <div style={{
+            fontSize: '0.68rem',
+            color: theme.colors.textLight,
+            fontWeight: 600,
+            marginTop: '2px',
+          }}>
+            {totalSessions} {totalSessions === 1 ? 'sesión completada' : 'sesiones completadas'} · para tu fisioterapeuta
+          </div>
+        </div>
+      </div>
+
+      {/* ── Ejercicios practicados ── */}
+      {totals.length > 0 && (
+        <div style={{
+          background: theme.colors.surface,
+          borderRadius: theme.radii.lg,
+          padding: '18px 20px',
+          border: `1px solid ${theme.colors.borderLight}`,
+          boxShadow: theme.shadows.card,
+          marginBottom: '22px',
+        }}>
+          <div style={{
+            fontFamily: theme.fonts.title,
+            fontSize: '0.82rem',
+            color: theme.colors.primary,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            marginBottom: '16px',
+          }}>
+            Ejercicios practicados
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
+            {totals.map(ex => (
+              <div key={ex.id}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  marginBottom: '6px',
+                }}>
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{ex.emoji}</span>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: theme.colors.text,
+                    flex: 1,
+                    lineHeight: 1.3,
+                  }}>
+                    {ex.name}
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    color: theme.colors.primary,
+                    flexShrink: 0,
+                    minWidth: '46px',
+                    textAlign: 'right',
+                  }}>
+                    {ex.count} {ex.count === 1 ? 'vez' : 'veces'}
+                  </span>
+                </div>
+                <div style={{
+                  height: '4px',
+                  background: theme.colors.bgDeep,
+                  borderRadius: theme.radii.full,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${(ex.count / maxCount) * 100}%`,
+                    background: `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.primaryDeep})`,
+                    borderRadius: theme.radii.full,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Por día ── */}
+      {entries.length > 0 && (
+        <div>
+          <div style={{
+            fontFamily: theme.fonts.title,
+            fontSize: '0.82rem',
+            color: theme.colors.primary,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            marginBottom: '12px',
+            paddingLeft: '2px',
+          }}>
+            Por día
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {entries.map(({ date, morning, afternoon }) => (
+              <div key={date} style={{
+                background: theme.colors.surface,
+                borderRadius: theme.radii.md,
+                padding: '12px 16px',
+                border: `1px solid ${theme.colors.borderLight}`,
+                boxShadow: theme.shadows.card,
+              }}>
+                <div style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: theme.colors.text,
+                  textTransform: 'capitalize',
+                  marginBottom: '9px',
+                  letterSpacing: '0.2px',
+                }}>
+                  {formatHistoryDate(date)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {morning && <HistorySessionRow session={morning} icon="☀" label="Mañana" color={theme.colors.morning} />}
+                  {afternoon && <HistorySessionRow session={afternoon} icon="☽" label="Tarde" color={theme.colors.afternoon} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -196,89 +431,21 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart }) {
 // ─── History helpers ──────────────────────────────────────────────────────────
 
 function normalizeSession(raw) {
-  // Handles both old format (boolean) and new format ({ completed, exercises })
   if (!raw) return null;
   if (typeof raw === 'boolean') return raw ? { completed: true, exercises: [] } : null;
   return raw.completed ? raw : null;
 }
 
 function formatHistoryDate(dateStr) {
-  // Avoid timezone shift by parsing as noon local time
   const d = new Date(dateStr + 'T12:00:00');
   const today = new Date().toISOString().split('T')[0];
-  const yesterday = (() => { const y = new Date(); y.setDate(y.getDate() - 1); return y.toISOString().split('T')[0]; })();
+  const yesterday = (() => {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return y.toISOString().split('T')[0];
+  })();
   if (dateStr === today) return 'Hoy';
   if (dateStr === yesterday) return 'Ayer';
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
-}
-
-function HistorySection({ history }) {
-  const entries = Object.entries(history || {})
-    .map(([date, day]) => ({ date, morning: normalizeSession(day.morning), afternoon: normalizeSession(day.afternoon) }))
-    .filter(e => e.morning || e.afternoon)
-    .sort((a, b) => b.date.localeCompare(a.date)); // newest first
-
-  if (entries.length === 0) return null;
-
-  return (
-    <div style={{ marginTop: '20px' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: '8px',
-        marginBottom: '12px',
-        paddingLeft: '2px',
-      }}>
-        <div style={{
-          fontFamily: theme.fonts.title,
-          fontSize: '0.82rem',
-          color: theme.colors.primary,
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-        }}>
-          Historial
-        </div>
-        <div style={{
-          fontSize: '0.68rem',
-          color: theme.colors.textLight,
-          fontWeight: 600,
-        }}>
-          para tu fisioterapeuta
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {entries.map(({ date, morning, afternoon }) => (
-          <div key={date} style={{
-            background: theme.colors.surface,
-            borderRadius: theme.radii.md,
-            padding: '12px 16px',
-            border: `1px solid ${theme.colors.borderLight}`,
-            boxShadow: theme.shadows.card,
-          }}>
-            {/* Date */}
-            <div style={{
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              color: theme.colors.text,
-              textTransform: 'capitalize',
-              marginBottom: '9px',
-              letterSpacing: '0.2px',
-            }}>
-              {formatHistoryDate(date)}
-            </div>
-
-            {/* Sessions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {morning && <HistorySessionRow session={morning} icon="☀" label="Mañana" color={theme.colors.morning} />}
-              {afternoon && <HistorySessionRow session={afternoon} icon="☽" label="Tarde" color={theme.colors.afternoon} />}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function HistorySessionRow({ session, icon, label, color }) {
@@ -288,7 +455,6 @@ function HistorySessionRow({ session, icon, label, color }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-      {/* Icon + label */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -309,7 +475,6 @@ function HistorySessionRow({ session, icon, label, color }) {
         </span>
       </div>
 
-      {/* Exercise chips */}
       {exDetails.length > 0 ? (
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
           {exDetails.map(ex => (
@@ -331,7 +496,6 @@ function HistorySessionRow({ session, icon, label, color }) {
           ))}
         </div>
       ) : (
-        // Old data format — no exercise IDs recorded
         <div style={{
           fontSize: '0.68rem',
           fontWeight: 700,
@@ -345,7 +509,7 @@ function HistorySessionRow({ session, icon, label, color }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Info section ─────────────────────────────────────────────────────────────
 
 function InfoSection() {
   const items = [

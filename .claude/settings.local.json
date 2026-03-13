@@ -6,7 +6,8 @@
       "Bash(rm -rf \"/Users/gervallarta/ClaudeCode/ankle-quest\")",
       "Bash(npm install:*)",
       "Bash(sudo rm:*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(brew install:*)"
     ]
   }
 }
