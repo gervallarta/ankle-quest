@@ -454,14 +454,11 @@ function HistorySessionRow({ session, icon, label, color }) {
     .filter(Boolean);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
-        flexShrink: 0,
-        width: '54px',
-        paddingTop: '2px',
       }}>
         <span style={{ fontSize: '0.72rem', opacity: 0.65 }}>{icon}</span>
         <span style={{
