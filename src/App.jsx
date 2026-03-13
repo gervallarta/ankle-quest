@@ -213,7 +213,7 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onVi
       {/* Info section */}
       <InfoSection />
 
-      {/* Recordatorios — solo si no se ha dado permiso aún */}
+      {/* Activar recordatorios — solo si no se ha dado permiso aún */}
       {notifPermission === 'default' && (
         <button
           onClick={onEnableNotifs}
@@ -244,18 +244,6 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onVi
           🔔 Activar recordatorios
         </button>
       )}
-      {notifPermission === 'granted' && (
-        <div style={{
-          marginTop: '12px',
-          textAlign: 'center',
-          fontSize: '0.72rem',
-          color: theme.colors.textLight,
-          fontWeight: 600,
-          letterSpacing: '0.2px',
-        }}>
-          🔔 Recordatorios activos · 12 pm y 8 pm
-        </div>
-      )}
 
       {/* Ver historial — subtle link-style button, only when data exists */}
       {hasHistory && (
@@ -282,6 +270,20 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onVi
         >
           Ver historial →
         </button>
+      )}
+
+      {/* Recordatorios activos — indicador sutil debajo de historial */}
+      {notifPermission === 'granted' && (
+        <div style={{
+          marginTop: '10px',
+          textAlign: 'center',
+          fontSize: '0.72rem',
+          color: theme.colors.textLight,
+          fontWeight: 600,
+          letterSpacing: '0.2px',
+        }}>
+          🔔 Recordatorios activos · 12 pm y 8 pm
+        </div>
       )}
     </div>
   );

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-function msUntilHour(hour) {
+// Uses device local time (CST/CDT Mexico City when device is in that zone)
+function msUntilTime(hour, minute = 0) {
   const target = new Date();
-  target.setHours(hour, 0, 0, 0);
+  target.setHours(hour, minute, 0, 0);
   return target.getTime() - Date.now();
 }
 
@@ -43,8 +44,20 @@ export function useNotifications(morning, afternoon) {
 
     const timers = [];
 
-    // 12:00 pm — morning reminder
-    const msToNoon = msUntilHour(12);
+    // 🔔 TEST — 2:25 pm (eliminar después de verificar)
+    const msToTest = msUntilTime(14, 25);
+    if (msToTest > 0) {
+      timers.push(setTimeout(() => {
+        showNotification(
+          'Ankle Quest — Prueba ✨',
+          '¡Las notificaciones funcionan! Llegarán a las 12 pm y 8 pm 🎉',
+          'test-reminder'
+        );
+      }, msToTest));
+    }
+
+    // 12:00 pm — sesión de mañana
+    const msToNoon = msUntilTime(12, 0);
     if (msToNoon > 0) {
       timers.push(setTimeout(() => {
         if (!morningRef.current.completed) {
@@ -57,8 +70,8 @@ export function useNotifications(morning, afternoon) {
       }, msToNoon));
     }
 
-    // 8:00 pm — afternoon reminder
-    const msToEvening = msUntilHour(20);
+    // 8:00 pm — sesión de tarde
+    const msToEvening = msUntilTime(20, 0);
     if (msToEvening > 0) {
       timers.push(setTimeout(() => {
         if (!afternoonRef.current.completed) {
