@@ -189,10 +189,10 @@ function HomeView({ morning, afternoon, bothDone, streak, onStart }) {
 
 function InfoSection() {
   const items = [
-    { icon: '☀', text: 'Sesión de mañana — elige 3 de 5 ejercicios' },
-    { icon: '☽', text: 'Sesión de tarde — 3 ejercicios distintos' },
+    { icon: '☀', text: 'Sesión de mañana — elige 3 ejercicios' },
+    { icon: '☽', text: 'Sesión de tarde — elige 3 ejercicios' },
     { icon: '✦', text: 'Completa una sesión para mantener tu racha' },
-    { icon: '✧', text: 'Tu tobillo izquierdo te lo agradecerá' },
+    { icon: '✧', text: 'Tu tobillo derecho te lo agradecerá' },
   ];
 
   return (

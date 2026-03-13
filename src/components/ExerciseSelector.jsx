@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { EXERCISES } from '../data/exercises';
 import { theme } from '../theme';
 
+const MANDATORY_ID = 1; // Equilibrio con Cojines — siempre obligatorio
+
 export function ExerciseSelector({ session, onConfirm, onBack }) {
-  const [selected, setSelected] = useState([]);
+  const [selected, setSelected] = useState([MANDATORY_ID]);
 
   const isMorning = session === 'morning';
   const accentColor = isMorning ? theme.colors.morning : theme.colors.afternoon;
   const accentDeep = isMorning ? theme.colors.morningDeep : theme.colors.afternoonDeep;
 
   function toggle(id) {
+    if (id === MANDATORY_ID) return; // no se puede deseleccionar
     setSelected(prev => {
       if (prev.includes(id)) return prev.filter(x => x !== id);
       if (prev.length >= 3) return prev;
@@ -18,6 +21,7 @@ export function ExerciseSelector({ session, onConfirm, onBack }) {
   }
 
   const canConfirm = selected.length === 3;
+  const freeSelected = selected.length - 1; // excluyendo el obligatorio
 
   return (
     <div style={{ animation: 'slideUp 0.4s ease forwards' }}>
@@ -37,16 +41,16 @@ export function ExerciseSelector({ session, onConfirm, onBack }) {
           color: theme.colors.textMuted,
           fontWeight: 600,
         }}>
-          Sesión de {isMorning ? 'mañana' : 'tarde'} · {selected.length} de 3
+          Sesión de {isMorning ? 'mañana' : 'tarde'} · {freeSelected} de 2 libres
         </div>
 
-        {/* Progress dots */}
+        {/* Progress dots — 1er punto siempre lleno (obligatorio) */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
           {[0, 1, 2].map(i => (
             <div key={i} style={{
               width: '32px', height: '3px',
               borderRadius: theme.radii.full,
-              background: i < selected.length ? accentColor : theme.colors.borderLight,
+              background: i === 0 || i < selected.length ? accentColor : theme.colors.borderLight,
               transition: 'background 0.3s',
             }} />
           ))}
@@ -56,14 +60,16 @@ export function ExerciseSelector({ session, onConfirm, onBack }) {
       {/* Exercise list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         {EXERCISES.map(ex => {
+          const isMandatory = ex.id === MANDATORY_ID;
           const isSelected = selected.includes(ex.id);
-          const isDisabled = !isSelected && selected.length >= 3;
+          const isDisabled = !isMandatory && !isSelected && selected.length >= 3;
           return (
             <ExerciseOption
               key={ex.id}
               exercise={ex}
               isSelected={isSelected}
               isDisabled={isDisabled}
+              isMandatory={isMandatory}
               accentColor={accentColor}
               onToggle={() => !isDisabled && toggle(ex.id)}
             />
@@ -110,20 +116,20 @@ export function ExerciseSelector({ session, onConfirm, onBack }) {
           onMouseDown={e => canConfirm && (e.currentTarget.style.transform = 'scale(0.98)')}
           onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
         >
-          {canConfirm ? 'Comenzar →' : `Selecciona ${3 - selected.length} más`}
+          {canConfirm ? 'Comenzar →' : `Selecciona ${2 - freeSelected} más`}
         </button>
       </div>
     </div>
   );
 }
 
-function ExerciseOption({ exercise, isSelected, isDisabled, accentColor, onToggle }) {
+function ExerciseOption({ exercise, isSelected, isDisabled, isMandatory, accentColor, onToggle }) {
   const [showDemo, setShowDemo] = useState(false);
 
   return (
     <div>
       <div
-        onClick={onToggle}
+        onClick={isMandatory ? undefined : onToggle}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -133,25 +139,38 @@ function ExerciseOption({ exercise, isSelected, isDisabled, accentColor, onToggl
           background: isSelected ? theme.colors.surfaceAlt : theme.colors.surface,
           border: `1.5px solid ${isSelected ? theme.colors.primary + '60' : theme.colors.borderLight}`,
           opacity: isDisabled ? 0.4 : 1,
-          cursor: isDisabled ? 'not-allowed' : 'pointer',
+          cursor: isMandatory ? 'default' : isDisabled ? 'not-allowed' : 'pointer',
           transition: 'all 0.2s',
           boxShadow: isSelected ? theme.shadows.glow : theme.shadows.card,
         }}
       >
-        {/* Checkbox */}
-        <div style={{
-          width: '22px', height: '22px',
-          borderRadius: '6px',
-          border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.borderLight}`,
-          background: isSelected ? theme.colors.primary : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          transition: 'all 0.2s',
-        }}>
-          {isSelected && (
-            <span style={{ color: 'white', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✓</span>
-          )}
-        </div>
+        {/* Checkbox / Obligatorio badge */}
+        {isMandatory ? (
+          <div style={{
+            width: '22px', height: '22px',
+            borderRadius: '6px',
+            background: theme.colors.primary,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            fontSize: '11px',
+          }}>
+            🔒
+          </div>
+        ) : (
+          <div style={{
+            width: '22px', height: '22px',
+            borderRadius: '6px',
+            border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.borderLight}`,
+            background: isSelected ? theme.colors.primary : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'all 0.2s',
+          }}>
+            {isSelected && (
+              <span style={{ color: 'white', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✓</span>
+            )}
+          </div>
+        )}
 
         {/* Emoji */}
         <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{exercise.emoji}</span>
@@ -159,12 +178,30 @@ function ExerciseOption({ exercise, isSelected, isDisabled, accentColor, onToggl
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontWeight: 800,
-            fontSize: '0.88rem',
-            color: theme.colors.text,
-            marginBottom: '2px',
+            display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px',
           }}>
-            {exercise.name}
+            <span style={{
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              color: theme.colors.text,
+            }}>
+              {exercise.name}
+            </span>
+            {isMandatory && (
+              <span style={{
+                fontSize: '0.6rem',
+                fontWeight: 800,
+                color: theme.colors.primary,
+                background: `${theme.colors.primary}15`,
+                border: `1px solid ${theme.colors.primary}30`,
+                borderRadius: theme.radii.full,
+                padding: '1px 7px',
+                letterSpacing: '0.3px',
+                textTransform: 'uppercase',
+              }}>
+                Obligatorio
+              </span>
+            )}
           </div>
           <div style={{
             fontSize: '0.72rem',
@@ -353,6 +390,51 @@ function ExerciseIllustration({ exerciseId }) {
         <line x1="62" y1="93" x2="36" y2="105" stroke={color} strokeWidth="4.5" strokeLinecap="round" />
         <text x="170" y="76" fontSize="14" fill={gold}>↑</text>
         <text x="100" y="130" textAnchor="middle" fontSize="9" fill={theme.colors.textMuted} fontFamily="Nunito, sans-serif" fontWeight="700">Elevación lateral · ambos lados</text>
+      </svg>
+    ),
+    6: (
+      <svg viewBox="0 0 200 140" style={{ width: '100%', height: '130px' }}>
+        <rect width="200" height="140" fill={`${color}08`} rx="10" />
+        {/* Floor */}
+        <line x1="20" y1="116" x2="180" y2="116" stroke={theme.colors.borderLight} strokeWidth="1.5" strokeDasharray="5,4" />
+        {/* Head */}
+        <circle cx="36" cy="60" r="11" fill={color} />
+        {/* Body horizontal */}
+        <line x1="47" y1="64" x2="162" y2="64" stroke={color} strokeWidth="5" strokeLinecap="round" />
+        {/* Front hand — touching floor */}
+        <line x1="76" y1="64" x2="76" y2="116" stroke={color} strokeWidth="4.5" strokeLinecap="round" />
+        {/* Back hand — touching floor */}
+        <line x1="112" y1="64" x2="112" y2="116" stroke={color} strokeWidth="4.5" strokeLinecap="round" />
+        {/* Front knee — hovering (gap before floor) */}
+        <line x1="138" y1="68" x2="138" y2="105" stroke={color} strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="138" cy="105" r="3" fill={gold} />
+        {/* Back knee — hovering */}
+        <line x1="157" y1="68" x2="157" y2="105" stroke={color} strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="157" cy="105" r="3" fill={gold} />
+        {/* Up arrows next to knees */}
+        <text x="143" y="100" fontSize="12" fill={gold}>↑</text>
+        <text x="162" y="100" fontSize="12" fill={gold}>↑</text>
+        <text x="100" y="131" textAnchor="middle" fontSize="9" fill={theme.colors.textMuted} fontFamily="Nunito, sans-serif" fontWeight="700">Plancha · levanta las rodillas</text>
+      </svg>
+    ),
+    7: (
+      <svg viewBox="0 0 200 140" style={{ width: '100%', height: '130px' }}>
+        <rect width="200" height="140" fill={`${color}08`} rx="10" />
+        {/* Floor */}
+        <line x1="20" y1="116" x2="180" y2="116" stroke={theme.colors.borderLight} strokeWidth="1.5" strokeDasharray="5,4" />
+        {/* Head */}
+        <circle cx="38" cy="70" r="11" fill={color} />
+        {/* Forearm support on floor */}
+        <line x1="48" y1="78" x2="48" y2="116" stroke={color} strokeWidth="4" strokeLinecap="round" />
+        {/* Body diagonal — hip raised */}
+        <line x1="48" y1="78" x2="158" y2="100" stroke={color} strokeWidth="6" strokeLinecap="round" />
+        {/* Bottom leg (toward floor) */}
+        <line x1="153" y1="100" x2="176" y2="112" stroke={color} strokeWidth="5" strokeLinecap="round" />
+        {/* Top leg raised */}
+        <line x1="146" y1="93" x2="168" y2="64" stroke={color} strokeWidth="5" strokeLinecap="round" />
+        {/* Arrow up */}
+        <text x="166" y="61" fontSize="14" fill={gold}>↑</text>
+        <text x="100" y="131" textAnchor="middle" fontSize="9" fill={theme.colors.textMuted} fontFamily="Nunito, sans-serif" fontWeight="700">Plancha lateral · pierna arriba</text>
       </svg>
     ),
   };
