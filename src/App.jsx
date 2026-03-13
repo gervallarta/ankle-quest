@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppState } from './hooks/useAppState';
+import { useNotifications } from './hooks/useNotifications';
 import { Header } from './components/Header';
 import { SessionCard } from './components/SessionCard';
 import { ExerciseSelector } from './components/ExerciseSelector';
@@ -20,8 +21,17 @@ export default function App() {
     resetSession,
   } = useAppState();
 
+  const { permission, requestPermission } = useNotifications(morning, afternoon);
+
   const [view, setView] = useState('home');
   const [activeSession, setActiveSession] = useState(null);
+
+  // Register service worker for background notifications
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
 
   const sessionData = activeSession === 'morning' ? morning : afternoon;
 
@@ -85,6 +95,8 @@ export default function App() {
             history={history}
             onStart={handleStartSession}
             onViewHistory={() => setView('history')}
+            notifPermission={permission}
+            onEnableNotifs={requestPermission}
           />
         )}
 
@@ -126,7 +138,7 @@ export default function App() {
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
-function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onViewHistory }) {
+function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onViewHistory, notifPermission, onEnableNotifs }) {
   const today = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
@@ -200,6 +212,50 @@ function HomeView({ morning, afternoon, bothDone, streak, history, onStart, onVi
 
       {/* Info section */}
       <InfoSection />
+
+      {/* Recordatorios — solo si no se ha dado permiso aún */}
+      {notifPermission === 'default' && (
+        <button
+          onClick={onEnableNotifs}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '11px',
+            borderRadius: theme.radii.md,
+            background: 'transparent',
+            border: `1px solid ${theme.colors.borderLight}`,
+            color: theme.colors.textMuted,
+            fontFamily: theme.fonts.body,
+            fontWeight: 700,
+            fontSize: '0.78rem',
+            letterSpacing: '0.3px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'opacity 0.15s',
+            cursor: 'pointer',
+          }}
+          onMouseDown={e => e.currentTarget.style.opacity = '0.55'}
+          onMouseUp={e => e.currentTarget.style.opacity = '1'}
+          onTouchStart={e => e.currentTarget.style.opacity = '0.55'}
+          onTouchEnd={e => e.currentTarget.style.opacity = '1'}
+        >
+          🔔 Activar recordatorios
+        </button>
+      )}
+      {notifPermission === 'granted' && (
+        <div style={{
+          marginTop: '12px',
+          textAlign: 'center',
+          fontSize: '0.72rem',
+          color: theme.colors.textLight,
+          fontWeight: 600,
+          letterSpacing: '0.2px',
+        }}>
+          🔔 Recordatorios activos · 12 pm y 8 pm
+        </div>
+      )}
 
       {/* Ver historial — subtle link-style button, only when data exists */}
       {hasHistory && (
