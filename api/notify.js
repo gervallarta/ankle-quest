@@ -50,7 +50,8 @@ export default async function handler(req, res) {
       process.env.VAPID_PRIVATE_KEY
     );
 
-    const subscription = JSON.parse(subJson);
+    // @vercel/kv auto-parsea JSON al leer, subJson ya es un objeto
+    const subscription = typeof subJson === 'string' ? JSON.parse(subJson) : subJson;
     const payload = JSON.stringify(MESSAGES[session]);
 
     await webpush.sendNotification(subscription, payload);
