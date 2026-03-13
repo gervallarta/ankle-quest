@@ -259,9 +259,13 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
   const totalReps = exercise.repsPerSide || exercise.reps;
 
   const [sideIdx, setSideIdx] = useState(0);
+  // repIdx only used for non-bilateral hold exercises
   const [repIdx, setRepIdx] = useState(0);
   const [holding, setHolding] = useState(false);
   const [timeLeft, setTimeLeft] = useState(exercise.holdSeconds || 0);
+  // Between-rep rest state (for exercises with restSeconds)
+  const [restingBetweenReps, setRestingBetweenReps] = useState(false);
+  const [restTimeLeft, setRestTimeLeft] = useState(0);
   const intervalRef = useRef(null);
 
   const currentSide = hasSides ? exercise.sides[sideIdx] : null;
@@ -283,7 +287,13 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
           setHolding(false);
+          // Auto-start between-rep rest if applicable
+          if (exercise.restSeconds) {
+            setRestingBetweenReps(true);
+            setRestTimeLeft(exercise.restSeconds);
+          }
           return 0;
         }
         return prev - 1;
@@ -291,20 +301,39 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
     }, 1000);
   }
 
+  // Countdown for between-rep rest
+  useEffect(() => {
+    if (!restingBetweenReps) return;
+    const t = setInterval(() => {
+      setRestTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(t);
+          setRestingBetweenReps(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [restingBetweenReps]);
+
   useEffect(() => () => clearTimer(), [clearTimer]);
 
   function handleRepDone() {
     clearTimer();
-    const nextRep = repIdx + 1;
-    if (nextRep >= totalReps) {
-      if (hasSides && sideIdx < exercise.sides.length - 1) {
+    // Bilateral: one tap per side, no per-rep tracking
+    if (hasSides) {
+      if (sideIdx < exercise.sides.length - 1) {
         setSideIdx(s => s + 1);
-        setRepIdx(0);
-        setHolding(false);
-        setTimeLeft(exercise.holdSeconds || 0);
       } else {
         onDone();
       }
+      return;
+    }
+    // Non-bilateral hold exercise: advance rep
+    const nextRep = repIdx + 1;
+    if (nextRep >= totalReps) {
+      onDone();
     } else {
       setRepIdx(nextRep);
       setHolding(false);
@@ -361,27 +390,55 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
         </div>
       )}
 
-      {/* Rep counter */}
-      <div style={{
-        fontFamily: theme.fonts.title,
-        fontSize: '3.8rem',
-        color: theme.colors.primary,
-        lineHeight: 1,
-        marginBottom: '4px',
-      }}>
-        {currentRep}
-        <span style={{ fontSize: '1.4rem', color: theme.colors.textLight }}>/{totalReps}</span>
-      </div>
-      <div style={{
-        fontSize: '0.75rem',
-        color: theme.colors.textLight,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-        marginBottom: '20px',
-      }}>
-        {hasSides ? `${currentSide}` : 'Repetición'}
-      </div>
+      {/* Rep display */}
+      {hasSides ? (
+        // Bilateral: show total reps to do (no per-rep tracking)
+        <>
+          <div style={{
+            fontFamily: theme.fonts.title,
+            fontSize: '3.8rem',
+            color: theme.colors.primary,
+            lineHeight: 1,
+            marginBottom: '4px',
+          }}>
+            {totalReps}
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: theme.colors.textLight,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '20px',
+          }}>
+            reps — {currentSide}
+          </div>
+        </>
+      ) : (
+        // Non-bilateral: show current rep progress
+        <>
+          <div style={{
+            fontFamily: theme.fonts.title,
+            fontSize: '3.8rem',
+            color: theme.colors.primary,
+            lineHeight: 1,
+            marginBottom: '4px',
+          }}>
+            {currentRep}
+            <span style={{ fontSize: '1.4rem', color: theme.colors.textLight }}>/{totalReps}</span>
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: theme.colors.textLight,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '20px',
+          }}>
+            Repetición
+          </div>
+        </>
+      )}
 
       {/* Timer circle */}
       {hasHold && (
@@ -427,7 +484,21 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
 
       {/* Action button */}
       {hasHold ? (
-        !holding ? (
+        restingBetweenReps ? (
+          // Between-rep rest countdown
+          <div style={{
+            padding: '14px',
+            borderRadius: theme.radii.md,
+            background: `${theme.colors.success}10`,
+            border: `1px solid ${theme.colors.success}30`,
+            fontFamily: theme.fonts.body,
+            fontSize: '0.9rem',
+            fontWeight: 700,
+            color: theme.colors.successDeep,
+          }}>
+            Descansa — {restTimeLeft}s
+          </div>
+        ) : !holding ? (
           <button
             onClick={timeLeft === 0 ? handleRepDone : startHold}
             style={{
@@ -467,6 +538,7 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
           </div>
         )
       ) : (
+        // Non-hold exercise (includes bilateral)
         <button
           onClick={handleRepDone}
           style={{
@@ -485,7 +557,10 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
           onTouchStart={e => e.currentTarget.style.transform = 'scale(0.98)'}
           onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
         >
-          {isLastRep && isLastSide ? 'Completar serie →' : 'Siguiente →'}
+          {hasSides
+            ? (isLastSide ? 'Completar serie →' : `Cambiar lado →`)
+            : (isLastRep ? 'Completar serie →' : 'Siguiente →')
+          }
         </button>
       )}
 

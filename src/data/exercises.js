@@ -43,7 +43,7 @@ export const EXERCISES = [
       'Cambia y repite 6 veces con la pierna izquierda',
       'Completa 3 series en total',
     ],
-    instructions: 'Abre y cierra con control. Siente el trabajo en la parte externa del muslo. ¡No arquees la espalda!',
+    instructions: 'Abre y cierra con control. Debes sentir el trabajo 100% en el glúteo. ¡No arquees la espalda!',
   },
   {
     id: 3,
@@ -80,6 +80,7 @@ export const EXERCISES = [
     reps: 5,
     sides: null,
     holdSeconds: 10,
+    restSeconds: 10,
     color: '#4FC3F7',
     bgColor: '#F0FBFF',
     image: '/exercises/ex4.jpg',
@@ -91,7 +92,7 @@ export const EXERCISES = [
       'Descansa y repite',
       'Completa 5 repeticiones por serie — 3 series en total',
     ],
-    instructions: 'La espalda debe estar completamente pegada a la pared. ¡Aguanta esos 10 segundos, tú puedes!',
+    instructions: 'Espalda pegada a la pared. Recuerda abrir la liga — mantén tensión en la banda todo el tiempo. ¡Aguanta esos 10 segundos!',
   },
   {
     id: 5,
@@ -138,7 +139,7 @@ export const EXERCISES = [
       'Baja las rodillas, descansa y repite',
       'Completa 5 repeticiones por serie — 3 series en total',
     ],
-    instructions: 'Mantén la espalda recta y el abdomen apretado. ¡No dejes que las caderas suban demasiado!',
+    instructions: 'Mantén la espalda recta. Durante los 10 segundos, mete el ombligo — como si lo jalaras hacia la columna. ¡No dejes que las caderas suban!',
   },
   {
     id: 7,
@@ -163,6 +164,6 @@ export const EXERCISES = [
       'Repite 6 veces, luego cambia al otro lado',
       'Completa 3 series de cada lado',
     ],
-    instructions: 'Sube la cadera antes de elevar la pierna. Mantén el cuerpo alineado de cabeza a pies.',
+    instructions: 'Sube la cadera antes de elevar la pierna. Cuida que el hombro esté alineado con el codo en todo momento. Mantén el cuerpo recto de cabeza a pies.',
   },
 ];
