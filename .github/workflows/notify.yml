@@ -1,0 +1,45 @@
+name: Recordatorios Ankle Quest
+
+on:
+  schedule:
+    # 12:00 PM CST (UTC-6) → 18:00 UTC
+    - cron: '0 18 * * *'
+    # 8:00 PM CST (UTC-6) → 02:00 UTC día siguiente
+    - cron: '0 2 * * *'
+  # Permite disparar manualmente desde GitHub Actions (para pruebas)
+  workflow_dispatch:
+    inputs:
+      session:
+        description: 'Sesión a notificar'
+        required: true
+        default: 'morning'
+        type: choice
+        options:
+          - morning
+          - afternoon
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determinar sesión según hora UTC
+        id: session
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "session=${{ inputs.session }}" >> $GITHUB_OUTPUT
+          else
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" = "18" ]; then
+              echo "session=morning" >> $GITHUB_OUTPUT
+            else
+              echo "session=afternoon" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Enviar notificación
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "x-notify-secret: ${{ secrets.NOTIFY_SECRET }}" \
+            "https://ankle-quest.vercel.app/api/notify?session=${{ steps.session.outputs.session }}")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then exit 1; fi
