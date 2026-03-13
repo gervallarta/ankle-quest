@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppState } from './hooks/useAppState';
 import { useNotifications } from './hooks/useNotifications';
 import { Header } from './components/Header';
@@ -26,13 +26,6 @@ export default function App() {
   const [view, setView] = useState('home');
   const [activeSession, setActiveSession] = useState(null);
 
-  // Register service worker for background notifications
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  }, []);
-
   const sessionData = activeSession === 'morning' ? morning : afternoon;
 
   function handleStartSession(session) {
@@ -52,6 +45,9 @@ export default function App() {
 
   function handleWorkoutComplete() {
     completeSession(activeSession, sessionData.selected);
+    // Avisar al servidor para que no mande push si ya hizo la sesión
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`/api/complete?session=${activeSession}&date=${today}`).catch(() => {});
     setView('completed');
   }
 
