@@ -76,7 +76,7 @@ export function useAppState() {
     }));
   }, []);
 
-  const completeSession = useCallback((session) => {
+  const completeSession = useCallback((session, exerciseIds = []) => {
     setState(prev => {
       const today = getTodayDate();
       const newToday = {
@@ -84,12 +84,13 @@ export function useAppState() {
         [session]: { ...prev.today[session], completed: true },
       };
 
-      // Update history
+      // Update history — store exercise IDs alongside completion flag
+      const existingDay = prev.history[today] || {};
       const newHistory = {
         ...prev.history,
         [today]: {
-          morning: session === 'morning' ? true : (prev.history[today]?.morning || false),
-          afternoon: session === 'afternoon' ? true : (prev.history[today]?.afternoon || false),
+          ...existingDay,
+          [session]: { completed: true, exercises: exerciseIds },
         },
       };
 

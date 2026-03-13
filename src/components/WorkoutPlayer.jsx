@@ -558,7 +558,7 @@ function ActiveScreen({ exercise, setIdx, totalSets, onDone, accentColor, accent
           onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           {hasSides
-            ? (isLastSide ? 'Completar serie →' : `Cambiar lado →`)
+            ? 'Listo 💪🏼'
             : (isLastRep ? 'Completar serie →' : 'Siguiente →')
           }
         </button>

@@ -5,11 +5,13 @@ import { SessionCard } from './components/SessionCard';
 import { ExerciseSelector } from './components/ExerciseSelector';
 import { WorkoutPlayer } from './components/WorkoutPlayer';
 import { CompletionScreen } from './components/CompletionScreen';
+import { EXERCISES } from './data/exercises';
 import { theme } from './theme';
 
 export default function App() {
   const {
     streak,
+    history,
     morning,
     afternoon,
     bothDone,
@@ -39,7 +41,7 @@ export default function App() {
   }
 
   function handleWorkoutComplete() {
-    completeSession(activeSession);
+    completeSession(activeSession, sessionData.selected);
     setView('completed');
   }
 
@@ -80,6 +82,7 @@ export default function App() {
             afternoon={afternoon}
             bothDone={bothDone}
             streak={streak}
+            history={history}
             onStart={handleStartSession}
           />
         )}
@@ -113,7 +116,7 @@ export default function App() {
   );
 }
 
-function HomeView({ morning, afternoon, bothDone, streak, onStart }) {
+function HomeView({ morning, afternoon, bothDone, streak, history, onStart }) {
   const today = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
@@ -183,9 +186,166 @@ function HomeView({ morning, afternoon, bothDone, streak, onStart }) {
 
       {/* Info section */}
       <InfoSection />
+
+      {/* History section */}
+      <HistorySection history={history} />
     </div>
   );
 }
+
+// ─── History helpers ──────────────────────────────────────────────────────────
+
+function normalizeSession(raw) {
+  // Handles both old format (boolean) and new format ({ completed, exercises })
+  if (!raw) return null;
+  if (typeof raw === 'boolean') return raw ? { completed: true, exercises: [] } : null;
+  return raw.completed ? raw : null;
+}
+
+function formatHistoryDate(dateStr) {
+  // Avoid timezone shift by parsing as noon local time
+  const d = new Date(dateStr + 'T12:00:00');
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = (() => { const y = new Date(); y.setDate(y.getDate() - 1); return y.toISOString().split('T')[0]; })();
+  if (dateStr === today) return 'Hoy';
+  if (dateStr === yesterday) return 'Ayer';
+  return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+function HistorySection({ history }) {
+  const entries = Object.entries(history || {})
+    .map(([date, day]) => ({ date, morning: normalizeSession(day.morning), afternoon: normalizeSession(day.afternoon) }))
+    .filter(e => e.morning || e.afternoon)
+    .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '8px',
+        marginBottom: '12px',
+        paddingLeft: '2px',
+      }}>
+        <div style={{
+          fontFamily: theme.fonts.title,
+          fontSize: '0.82rem',
+          color: theme.colors.primary,
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+        }}>
+          Historial
+        </div>
+        <div style={{
+          fontSize: '0.68rem',
+          color: theme.colors.textLight,
+          fontWeight: 600,
+        }}>
+          para tu fisioterapeuta
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {entries.map(({ date, morning, afternoon }) => (
+          <div key={date} style={{
+            background: theme.colors.surface,
+            borderRadius: theme.radii.md,
+            padding: '12px 16px',
+            border: `1px solid ${theme.colors.borderLight}`,
+            boxShadow: theme.shadows.card,
+          }}>
+            {/* Date */}
+            <div style={{
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              color: theme.colors.text,
+              textTransform: 'capitalize',
+              marginBottom: '9px',
+              letterSpacing: '0.2px',
+            }}>
+              {formatHistoryDate(date)}
+            </div>
+
+            {/* Sessions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {morning && <HistorySessionRow session={morning} icon="☀" label="Mañana" color={theme.colors.morning} />}
+              {afternoon && <HistorySessionRow session={afternoon} icon="☽" label="Tarde" color={theme.colors.afternoon} />}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistorySessionRow({ session, icon, label, color }) {
+  const exDetails = (session.exercises || [])
+    .map(id => EXERCISES.find(e => e.id === id))
+    .filter(Boolean);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+      {/* Icon + label */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        flexShrink: 0,
+        width: '54px',
+        paddingTop: '2px',
+      }}>
+        <span style={{ fontSize: '0.72rem', opacity: 0.65 }}>{icon}</span>
+        <span style={{
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          color: theme.colors.textMuted,
+          textTransform: 'uppercase',
+          letterSpacing: '0.4px',
+        }}>
+          {label}
+        </span>
+      </div>
+
+      {/* Exercise chips */}
+      {exDetails.length > 0 ? (
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {exDetails.map(ex => (
+            <div key={ex.id} style={{
+              background: `${color}12`,
+              border: `1px solid ${color}35`,
+              borderRadius: theme.radii.sm,
+              padding: '2px 8px',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              color: theme.colors.text,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <span>{ex.emoji}</span>
+              <span>{ex.name}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Old data format — no exercise IDs recorded
+        <div style={{
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          color: theme.colors.success,
+          paddingTop: '2px',
+        }}>
+          ✓ Completada
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function InfoSection() {
   const items = [
