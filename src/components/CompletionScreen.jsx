@@ -148,21 +148,26 @@ export function CompletionScreen({ session, bothDone, onDismiss }) {
 
         {bothDone && (
           <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: `linear-gradient(135deg, ${theme.colors.gold}20, ${theme.colors.goldLight}25)`,
-            borderRadius: theme.radii.full,
-            padding: '7px 20px',
-            fontSize: '0.8rem',
-            fontWeight: 800,
-            color: theme.colors.goldDeep,
-            marginTop: '8px',
+            background: `linear-gradient(135deg, ${theme.colors.gold}25, ${theme.colors.goldLight}30)`,
+            borderRadius: theme.radii.lg,
+            padding: '16px 20px',
+            marginTop: '12px',
             marginBottom: '8px',
-            border: `1px solid ${theme.colors.gold}40`,
+            border: `2px solid ${theme.colors.gold}50`,
+            animation: 'glowPulse 2.5s ease infinite',
           }}>
-            <span>🔥</span>
-            <span>Día completo — racha en marcha</span>
+            <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>
+              👑🏆✨
+            </div>
+            <div style={{
+              fontFamily: theme.fonts.title,
+              fontSize: '1.1rem',
+              color: theme.colors.goldDeep,
+              letterSpacing: '0.3px',
+              lineHeight: 1.5,
+            }}>
+              Eres una campeona y tu novio te ama mucho
+            </div>
           </div>
         )}
 

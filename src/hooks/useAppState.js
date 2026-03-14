@@ -3,13 +3,14 @@ import { useState, useEffect, useCallback } from 'react';
 const STORAGE_KEY = 'anklequest_data';
 
 function getTodayDate() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getYesterdayDate() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getInitialData() {
@@ -94,16 +95,17 @@ export function useAppState() {
         },
       };
 
-      // Update streak
+      // Update streak — only when BOTH sessions are completed
       let newStreak = { ...prev.streak };
       const yesterday = getYesterdayDate();
-      const alreadyCompletedToday = prev.today.morning.completed || prev.today.afternoon.completed;
+      const otherSession = session === 'morning' ? 'afternoon' : 'morning';
+      const otherCompleted = prev.today[otherSession].completed;
 
-      if (!alreadyCompletedToday) {
-        // First completion of today
-        if (newStreak.lastCompletedDate === yesterday || newStreak.lastCompletedDate === today) {
-          newStreak.count = newStreak.lastCompletedDate === today ? newStreak.count : newStreak.count + 1;
-        } else {
+      if (otherCompleted) {
+        // Both sessions done today → increment streak
+        if (newStreak.lastCompletedDate === yesterday) {
+          newStreak.count += 1;
+        } else if (newStreak.lastCompletedDate !== today) {
           newStreak.count = 1;
         }
         newStreak.lastCompletedDate = today;

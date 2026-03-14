@@ -46,7 +46,8 @@ export default function App() {
   function handleWorkoutComplete() {
     completeSession(activeSession, sessionData.selected);
     // Avisar al servidor para que no mande push si ya hizo la sesión
-    const today = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     fetch(`/api/complete?session=${activeSession}&date=${today}`).catch(() => {});
     setView('completed');
   }
@@ -492,10 +493,11 @@ function normalizeSession(raw) {
 
 function formatHistoryDate(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const yesterday = (() => {
     const y = new Date(); y.setDate(y.getDate() - 1);
-    return y.toISOString().split('T')[0];
+    return `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
   })();
   if (dateStr === today) return 'Hoy';
   if (dateStr === yesterday) return 'Ayer';
@@ -566,7 +568,7 @@ function InfoSection() {
   const items = [
     { icon: '☀', text: 'Sesión de mañana — elige 3 ejercicios' },
     { icon: '☽', text: 'Sesión de tarde — elige 3 ejercicios' },
-    { icon: '✦', text: 'Completa una sesión para mantener tu racha' },
+    { icon: '✦', text: 'Completa ambas sesiones para mantener tu racha' },
     { icon: '✧', text: 'Tu tobillo derecho te lo agradecerá' },
   ];
 
